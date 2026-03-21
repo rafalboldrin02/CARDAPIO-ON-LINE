@@ -3,7 +3,7 @@
 <head>
   <title>Cardápio</title>
 
-  <!-- Firebase CORRETO -->
+  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
@@ -39,9 +39,24 @@
       padding: 20px;
     }
 
-    button {
-      margin: 5px;
+    .menu-item {
+      display: flex;
+      justify-content: space-between;
+      background: #222;
       padding: 10px;
+      margin: 5px;
+      border-radius: 10px;
+    }
+
+    .carrinho-box {
+      background: #222;
+      padding: 15px;
+      margin-top: 20px;
+      border-radius: 10px;
+    }
+
+    button {
+      padding: 8px;
       border-radius: 5px;
       cursor: pointer;
     }
@@ -60,14 +75,17 @@
 <!-- COMPRADOR -->
 <div id="comprador">
   <h2>Cardápio</h2>
-  <ul id="menu"></ul>
+  <div id="menu"></div>
 
-  <h3>Carrinho:</h3>
-  <ul id="carrinhoLista"></ul>
+  <div class="carrinho-box">
+    <h3>🛒 Carrinho</h3>
+    <ul id="carrinhoLista"></ul>
+    <p><b>Total: R$ <span id="total">0</span></b></p>
 
-  <input id="nomeCliente" placeholder="Seu nome">
-  <br>
-  <button onclick="enviarPedido()">Enviar Pedido</button>
+    <input id="nomeCliente" placeholder="Seu nome">
+    <br><br>
+    <button onclick="enviarPedido()">Enviar Pedido</button>
+  </div>
 </div>
 
 <!-- ADMIN -->
@@ -78,11 +96,11 @@
   <input id="precoItem" placeholder="Preço">
   <button onclick="addItem()">Postar</button>
 
-  <h3>Itens:</h3>
+  <h3>Itens</h3>
   <ul id="listaItens"></ul>
 
-  <h3>Pedidos:</h3>
-  <ul id="pedidos"></ul>
+  <h3>Pedidos</h3>
+  <div id="pedidos"></div>
 </div>
 
 <script>
@@ -120,7 +138,7 @@ function loginAdmin(){
 /* ITENS */
 function addItem(){
   let nome = nomeItem.value;
-  let preco = precoItem.value;
+  let preco = parseFloat(precoItem.value);
 
   if(nome && preco){
     db.collection("itens").add({nome, preco});
@@ -154,10 +172,14 @@ function carregarMenu(){
 
     snapshot.forEach(doc => {
       let item = doc.data();
+
       menu.innerHTML += `
-        <li>${item.nome} - R$ ${item.preco}
-        <button onclick="addCarrinho('${item.nome}', ${item.preco})">+</button>
-        </li>`;
+        <div class="menu-item">
+          <span>${item.nome}</span>
+          <span>R$ ${item.preco}</span>
+          <button onclick="addCarrinho('${item.nome}', ${item.preco})">+</button>
+        </div>
+      `;
     });
   });
 }
@@ -170,12 +192,17 @@ function addCarrinho(nome, preco){
 
 function atualizarCarrinho(){
   carrinhoLista.innerHTML = "";
+  let total = 0;
+
   carrinho.forEach(item => {
+    total += item.preco;
     carrinhoLista.innerHTML += `<li>${item.nome} - R$ ${item.preco}</li>`;
   });
+
+  document.getElementById("total").innerText = total.toFixed(2);
 }
 
-/* PEDIDOS */
+/* PEDIDO */
 function enviarPedido(){
   let nome = nomeCliente.value;
 
@@ -184,9 +211,12 @@ function enviarPedido(){
     return;
   }
 
+  let total = carrinho.reduce((s, i) => s + i.preco, 0);
+
   db.collection("pedidos").add({
     nome,
-    carrinho
+    carrinho,
+    total
   });
 
   alert("Pedido enviado!");
@@ -194,13 +224,26 @@ function enviarPedido(){
   atualizarCarrinho();
 }
 
+/* ADMIN PEDIDOS */
 function carregarPedidos(){
   db.collection("pedidos").onSnapshot(snapshot => {
     pedidos.innerHTML = "";
 
     snapshot.forEach(doc => {
       let p = doc.data();
-      pedidos.innerHTML += `<li>${p.nome} - ${JSON.stringify(p.carrinho)}</li>`;
+
+      let lista = "";
+      p.carrinho.forEach(item => {
+        lista += `<li>${item.nome} - R$ ${item.preco}</li>`;
+      });
+
+      pedidos.innerHTML += `
+        <div style="background:#222; padding:10px; margin:10px; border-radius:10px;">
+          <h3>${p.nome}</h3>
+          <ul>${lista}</ul>
+          <b>Total: R$ ${p.total}</b>
+        </div>
+      `;
     });
   });
 }
