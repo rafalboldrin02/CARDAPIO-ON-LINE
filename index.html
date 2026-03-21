@@ -4,7 +4,6 @@
   <title>Cardápio App</title>
 
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="manifest" href="manifest.json">
 
   <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -33,6 +32,7 @@
       background: #ff9800;
       color: white;
       font-size: 16px;
+      cursor: pointer;
     }
 
     .card {
@@ -53,7 +53,6 @@
       text-align: center;
       font-size: 12px;
       color: #aaa;
-      opacity: 0.7;
     }
   </style>
 </head>
@@ -65,7 +64,6 @@
 </header>
 
 <div id="inicio" class="card">
-  <button class="btn" onclick="ativarSom()">🔊 Ativar Som</button>
   <button class="btn" onclick="abrirComprador()">Comprador</button>
   <button class="btn" onclick="loginAdmin()">Admin</button>
 </div>
@@ -96,7 +94,7 @@
   </div>
 </div>
 
-<!-- SOM -->
+<!-- 🔊 SOM -->
 <audio id="som">
   <source src="https://assets.mixkit.co/sfx/preview/mixkit-alert-quick-chime-766.mp3">
 </audio>
@@ -114,111 +112,117 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
 let carrinho = [];
-let somAtivo = false;
-let ultimo = 0;
-
-/* SOM */
-function ativarSom(){
-  som.play();
-  som.pause();
-  som.currentTime = 0;
-  somAtivo = true;
-  alert("Som ativado!");
-}
+let ultimoTotal = 0;
 
 /* TELAS */
 function abrirComprador(){
-  inicio.style.display="none";
-  comprador.style.display="block";
+  document.getElementById("inicio").style.display="none";
+  document.getElementById("comprador").style.display="block";
   carregarMenu();
 }
 
 function loginAdmin(){
-  let s = prompt("Senha:");
-  if(s==="admin123"){
-    inicio.style.display="none";
-    admin.style.display="block";
+  let senha = prompt("Senha:");
+  if(senha === "admin123"){
+    document.getElementById("inicio").style.display="none";
+    document.getElementById("admin").style.display="block";
     carregarPedidos();
   }
 }
 
 /* MENU */
 function carregarMenu(){
-  db.collection("itens").onSnapshot(snap=>{
-    menu.innerHTML="";
-    snap.forEach(doc=>{
-      let i = doc.data();
+  db.collection("itens").onSnapshot(snapshot=>{
+    let menu = document.getElementById("menu");
+    menu.innerHTML = "";
+
+    snapshot.forEach(doc=>{
+      let item = doc.data();
+
       menu.innerHTML += `
         <div class="card">
-          ${i.nome} - R$ ${i.preco}
-          <button class="btn" onclick="addCarrinho('${i.nome}',${i.preco})">+</button>
-        </div>`;
+          ${item.nome} - R$ ${item.preco}
+          <button class="btn" onclick="addCarrinho('${item.nome}', ${item.preco})">+</button>
+        </div>
+      `;
     });
   });
 }
 
 /* CARRINHO */
-function addCarrinho(nome,preco){
-  carrinho.push({nome,preco});
-  atualizar();
+function addCarrinho(nome, preco){
+  carrinho.push({nome, preco});
+  atualizarCarrinho();
 }
 
-function atualizar(){
-  carrinhoLista.innerHTML="";
-  let total=0;
-  carrinho.forEach(i=>{
-    total+=i.preco;
-    carrinhoLista.innerHTML+=\`<li>\${i.nome} - R$ \${i.preco}</li>\`;
+function atualizarCarrinho(){
+  let lista = document.getElementById("carrinhoLista");
+  let totalEl = document.getElementById("total");
+
+  lista.innerHTML = "";
+  let total = 0;
+
+  carrinho.forEach(item=>{
+    total += item.preco;
+    lista.innerHTML += `<li>${item.nome} - R$ ${item.preco}</li>`;
   });
-  totalSpan.innerText=total.toFixed(2);
+
+  totalEl.innerText = total.toFixed(2);
 }
 
 /* PEDIDO */
 async function enviarPedido(){
-  let nome=nomeCliente.value;
-  if(!nome) return alert("Digite seu nome");
+  let nome = document.getElementById("nomeCliente").value;
 
-  let total=carrinho.reduce((s,i)=>s+i.preco,0);
+  if(!nome){
+    alert("Digite seu nome");
+    return;
+  }
 
-  let snap=await db.collection("pedidos").get();
-  let numero=String(snap.size+1).padStart(3,'0');
+  let total = carrinho.reduce((s,i)=>s+i.preco,0);
 
-  await db.collection("pedidos").add({numero,nome,carrinho,total});
+  let snap = await db.collection("pedidos").get();
+  let numero = String(snap.size + 1).padStart(3,'0');
 
-  carrinho=[];
-  atualizar();
-  alert("Enviado!");
+  await db.collection("pedidos").add({
+    numero, nome, carrinho, total
+  });
+
+  alert("Pedido enviado!");
+  carrinho = [];
+  atualizarCarrinho();
 }
 
 /* ADMIN */
 function carregarPedidos(){
-  db.collection("pedidos").onSnapshot(snap=>{
+  db.collection("pedidos").onSnapshot(snapshot=>{
 
-    if(snap.size>ultimo){
-      if(somAtivo){
-        som.play();
-        navigator.vibrate?.(200);
-      }
-      alert("Novo pedido!");
+    // 🔊 SOM quando chega novo pedido
+    if(snapshot.size > ultimoTotal){
+      document.getElementById("som").play();
+      navigator.vibrate?.(200);
     }
-    ultimo=snap.size;
+    ultimoTotal = snapshot.size;
 
-    pedidos.innerHTML="";
-    snap.forEach(doc=>{
-      let p=doc.data();
+    let pedidosDiv = document.getElementById("pedidos");
+    pedidosDiv.innerHTML = "";
 
-      let lista="";
-      p.carrinho.forEach(i=>{
-        lista+=\`<li>\${i.nome} - R$ \${i.preco}</li>\`;
+    snapshot.forEach(doc=>{
+      let p = doc.data();
+
+      let lista = "";
+      p.carrinho.forEach(item=>{
+        lista += `<li>${item.nome} - R$ ${item.preco}</li>`;
       });
 
-      pedidos.innerHTML+=`
+      pedidosDiv.innerHTML += `
         <div class="card">
           <b>#${p.numero} - ${p.nome}</b>
           <ul>${lista}</ul>
           Total: R$ ${p.total}
           <button class="btn" onclick="entregar('${doc.id}')">Entregue</button>
-        </div>`;
+        </div>
+      `;
     });
   });
 }
@@ -227,11 +231,14 @@ function entregar(id){
   db.collection("pedidos").doc(id).delete();
 }
 
+/* ADMIN - ADD ITEM */
 function addItem(){
-  db.collection("itens").add({
-    nome:nomeItem.value,
-    preco:parseFloat(precoItem.value)
-  });
+  let nome = document.getElementById("nomeItem").value;
+  let preco = parseFloat(document.getElementById("precoItem").value);
+
+  if(nome && preco){
+    db.collection("itens").add({nome, preco});
+  }
 }
 </script>
 
