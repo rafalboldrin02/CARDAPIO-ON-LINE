@@ -3,7 +3,7 @@
 <head>
   <title>Cardápio</title>
 
-  <!-- Firebase CORRETO (versão 8) -->
+  <!-- Firebase CORRETO -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
@@ -32,12 +32,6 @@
       justify-content: center;
       font-size: 22px;
       cursor: pointer;
-      transition: 0.3s;
-    }
-
-    .box:hover {
-      background: #444;
-      transform: scale(1.1);
     }
 
     #comprador, #admin {
@@ -45,22 +39,9 @@
       padding: 20px;
     }
 
-    .painel {
-      display: flex;
-      gap: 20px;
-    }
-
-    .coluna {
-      width: 50%;
-      background: #222;
-      padding: 20px;
-      border-radius: 10px;
-    }
-
     button {
       margin: 5px;
       padding: 10px;
-      border: none;
       border-radius: 5px;
       cursor: pointer;
     }
@@ -93,25 +74,18 @@
 <div id="admin">
   <h2>Painel Admin</h2>
 
-  <div class="painel">
-    
-    <div class="coluna">
-      <h3>Adicionar Item</h3>
-      <input id="nomeItem" placeholder="Nome">
-      <input id="precoItem" placeholder="Preço">
-      <button onclick="addItem()">Postar</button>
-    </div>
+  <input id="nomeItem" placeholder="Nome">
+  <input id="precoItem" placeholder="Preço">
+  <button onclick="addItem()">Postar</button>
 
-    <div class="coluna">
-      <h3>Pedidos</h3>
-      <ul id="pedidos"></ul>
-    </div>
+  <h3>Itens:</h3>
+  <ul id="listaItens"></ul>
 
-  </div>
+  <h3>Pedidos:</h3>
+  <ul id="pedidos"></ul>
 </div>
 
 <script>
-/* 🔥 CONFIG DO FIREBASE (SEU) */
 const firebaseConfig = {
   apiKey: "AIzaSyBAOc1VyUxB2oVSMV5KC96VHgtdZ_dGBRI",
   authDomain: "cardapio-app-b99f5.firebaseapp.com",
@@ -121,48 +95,66 @@ const firebaseConfig = {
   appId: "1:737356348366:web:e4e4983e198139f9bd499f"
 };
 
-/* 🔥 INICIALIZAÇÃO */
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
 let carrinho = [];
 
-/* 🔓 COMPRADOR */
+/* TELAS */
 function abrirComprador(){
-  document.getElementById("inicio").style.display = "none";
-  document.getElementById("comprador").style.display = "block";
+  inicio.style.display = "none";
+  comprador.style.display = "block";
   carregarMenu();
 }
 
-/* 🔒 ADMIN */
 function loginAdmin(){
   let senha = prompt("Senha:");
   if(senha === "admin123"){
-    document.getElementById("inicio").style.display = "none";
-    document.getElementById("admin").style.display = "block";
+    inicio.style.display = "none";
+    admin.style.display = "block";
     carregarPedidos();
-  } else {
-    alert("Senha errada");
+    carregarItens();
   }
 }
 
-/* ➕ ADD ITEM */
+/* ITENS */
 function addItem(){
-  let nome = document.getElementById("nomeItem").value;
-  let preco = document.getElementById("precoItem").value;
+  let nome = nomeItem.value;
+  let preco = precoItem.value;
 
   if(nome && preco){
     db.collection("itens").add({nome, preco});
   }
 }
 
-/* 📋 MENU */
-function carregarMenu(){
+function carregarItens(){
   db.collection("itens").onSnapshot(snapshot => {
-    document.getElementById("menu").innerHTML = "";
+    listaItens.innerHTML = "";
+
     snapshot.forEach(doc => {
       let item = doc.data();
-      document.getElementById("menu").innerHTML += `
+      listaItens.innerHTML += `
+        <li>
+          ${item.nome} - R$ ${item.preco}
+          <button onclick="excluirItem('${doc.id}')">❌</button>
+        </li>
+      `;
+    });
+  });
+}
+
+function excluirItem(id){
+  db.collection("itens").doc(id).delete();
+}
+
+/* MENU */
+function carregarMenu(){
+  db.collection("itens").onSnapshot(snapshot => {
+    menu.innerHTML = "";
+
+    snapshot.forEach(doc => {
+      let item = doc.data();
+      menu.innerHTML += `
         <li>${item.nome} - R$ ${item.preco}
         <button onclick="addCarrinho('${item.nome}', ${item.preco})">+</button>
         </li>`;
@@ -170,24 +162,22 @@ function carregarMenu(){
   });
 }
 
-/* 🛒 CARRINHO */
+/* CARRINHO */
 function addCarrinho(nome, preco){
   carrinho.push({nome, preco});
   atualizarCarrinho();
 }
 
 function atualizarCarrinho(){
-  let lista = document.getElementById("carrinhoLista");
-  lista.innerHTML = "";
-
+  carrinhoLista.innerHTML = "";
   carrinho.forEach(item => {
-    lista.innerHTML += `<li>${item.nome} - R$ ${item.preco}</li>`;
+    carrinhoLista.innerHTML += `<li>${item.nome} - R$ ${item.preco}</li>`;
   });
 }
 
-/* 📤 PEDIDO */
+/* PEDIDOS */
 function enviarPedido(){
-  let nome = document.getElementById("nomeCliente").value;
+  let nome = nomeCliente.value;
 
   if(!nome){
     alert("Digite seu nome!");
@@ -204,15 +194,13 @@ function enviarPedido(){
   atualizarCarrinho();
 }
 
-/* 📥 PEDIDOS ADMIN */
 function carregarPedidos(){
   db.collection("pedidos").onSnapshot(snapshot => {
-    let lista = document.getElementById("pedidos");
-    lista.innerHTML = "";
+    pedidos.innerHTML = "";
 
     snapshot.forEach(doc => {
       let p = doc.data();
-      lista.innerHTML += `<li>${p.nome} - ${JSON.stringify(p.carrinho)}</li>`;
+      pedidos.innerHTML += `<li>${p.nome} - ${JSON.stringify(p.carrinho)}</li>`;
     });
   });
 }
