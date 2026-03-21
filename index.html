@@ -1,14 +1,8 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Cardápio App</title>
+  <title>Cardápio Pro</title>
 
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-
-  <!-- PWA -->
-  <link rel="manifest" href="manifest.json">
-
-  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
@@ -21,27 +15,36 @@
     }
 
     header {
-      padding: 15px;
       background: #1f1f1f;
-      text-align: center;
+      padding: 15px;
+      display: flex;
+      justify-content: space-between;
     }
 
     .btn {
-      width: 100%;
-      padding: 15px;
-      margin: 5px 0;
-      border: none;
-      border-radius: 10px;
+      padding: 10px;
+      border-radius: 8px;
       background: #ff9800;
+      border: none;
+      cursor: pointer;
       color: white;
-      font-size: 16px;
+    }
+
+    .container {
+      padding: 20px;
     }
 
     .card {
       background: #1f1f1f;
       padding: 15px;
-      margin: 10px;
+      margin: 10px 0;
       border-radius: 12px;
+    }
+
+    .menu-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
 
     #comprador, #admin {
@@ -53,33 +56,42 @@
 <body>
 
 <header>
-  <h2>🍔 Cardápio App</h2>
+  <h2>🍔 Cardápio</h2>
+  <button class="btn" onclick="voltarInicio()">Início</button>
 </header>
 
-<div id="inicio" class="card">
-  <button class="btn" onclick="ativarSom()">🔊 Ativar Som</button>
+<div class="container" id="inicio">
   <button class="btn" onclick="abrirComprador()">Comprador</button>
   <button class="btn" onclick="loginAdmin()">Admin</button>
 </div>
 
-<div id="comprador">
+<div id="comprador" class="container">
+  <h3>Cardápio</h3>
   <div id="menu"></div>
 
   <div class="card">
-    <h3>Carrinho</h3>
+    <h3>🛒 Carrinho</h3>
     <ul id="carrinhoLista"></ul>
     <p>Total: R$ <span id="total">0</span></p>
 
     <input id="nomeCliente" placeholder="Seu nome">
+    <br><br>
     <button class="btn" onclick="enviarPedido()">Enviar Pedido</button>
   </div>
 </div>
 
-<div id="admin">
+<div id="admin" class="container">
+  <h3>Painel Admin</h3>
+
   <div class="card">
     <input id="nomeItem" placeholder="Nome">
     <input id="precoItem" placeholder="Preço">
     <button class="btn" onclick="addItem()">Postar</button>
+  </div>
+
+  <div class="card">
+    <h3>Itens</h3>
+    <ul id="listaItens"></ul>
   </div>
 
   <div class="card">
@@ -89,124 +101,166 @@
 </div>
 
 <!-- 🔊 SOM -->
-<audio id="som">
-  <source src="https://assets.mixkit.co/sfx/preview/mixkit-alert-quick-chime-766.mp3">
+<audio id="somPedido">
+  <source src="https://www.soundjay.com/buttons/sounds/button-3.mp3" type="audio/mpeg">
 </audio>
 
 <script>
 const firebaseConfig = {
   apiKey: "AIzaSyBAOc1VyUxB2oVSMV5KC96VHgtdZ_dGBRI",
   authDomain: "cardapio-app-b99f5.firebaseapp.com",
-  projectId: "cardapio-app-b99f5"
+  projectId: "cardapio-app-b99f5",
+  storageBucket: "cardapio-app-b99f5.appspot.com",
+  messagingSenderId: "737356348366",
+  appId: "1:737356348366:web:e4e4983e198139f9bd499f"
 };
 
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
 let carrinho = [];
-let somAtivo = false;
-let ultimo = 0;
-
-/* 🔊 ATIVAR SOM */
-function ativarSom(){
-  som.play();
-  som.pause();
-  som.currentTime = 0;
-  somAtivo = true;
-  alert("Som ativado!");
-}
+let ultimoTotalPedidos = 0;
 
 /* TELAS */
+function voltarInicio(){
+  inicio.style.display = "block";
+  comprador.style.display = "none";
+  admin.style.display = "none";
+}
+
 function abrirComprador(){
-  inicio.style.display="none";
-  comprador.style.display="block";
+  inicio.style.display = "none";
+  comprador.style.display = "block";
   carregarMenu();
 }
 
 function loginAdmin(){
-  let s = prompt("Senha:");
-  if(s==="admin123"){
-    inicio.style.display="none";
-    admin.style.display="block";
+  let senha = prompt("Senha:");
+  if(senha === "admin123"){
+    inicio.style.display = "none";
+    admin.style.display = "block";
     carregarPedidos();
+    carregarItens();
   }
 }
 
-/* MENU */
+/* ITENS */
+function addItem(){
+  let nome = nomeItem.value;
+  let preco = parseFloat(precoItem.value);
+
+  if(nome && preco){
+    db.collection("itens").add({nome, preco});
+  }
+}
+
+function carregarItens(){
+  db.collection("itens").onSnapshot(snapshot => {
+    listaItens.innerHTML = "";
+
+    snapshot.forEach(doc => {
+      let item = doc.data();
+
+      listaItens.innerHTML += `
+        <li>
+          ${item.nome} - R$ ${item.preco}
+          <button onclick="excluirItem('${doc.id}')">❌</button>
+        </li>
+      `;
+    });
+  });
+}
+
+function excluirItem(id){
+  db.collection("itens").doc(id).delete();
+}
+
+/* MENU (CORRIGIDO) */
 function carregarMenu(){
-  db.collection("itens").onSnapshot(snap=>{
-    menu.innerHTML="";
-    snap.forEach(doc=>{
-      let i = doc.data();
-      menu.innerHTML += `
-        <div class="card">
-          ${i.nome} - R$ ${i.preco}
-          <button class="btn" onclick="addCarrinho('${i.nome}',${i.preco})">+</button>
-        </div>`;
+  db.collection("itens").onSnapshot(snapshot => {
+    document.getElementById("menu").innerHTML = "";
+
+    snapshot.forEach(doc => {
+      let item = doc.data();
+
+      document.getElementById("menu").innerHTML += `
+        <div class="card menu-item">
+          <span>${item.nome}</span>
+          <span>R$ ${item.preco}</span>
+          <button class="btn" onclick="addCarrinho('${item.nome}', ${item.preco})">+</button>
+        </div>
+      `;
     });
   });
 }
 
 /* CARRINHO */
-function addCarrinho(nome,preco){
-  carrinho.push({nome,preco});
-  atualizar();
+function addCarrinho(nome, preco){
+  carrinho.push({nome, preco});
+  atualizarCarrinho();
 }
 
-function atualizar(){
-  carrinhoLista.innerHTML="";
-  let total=0;
-  carrinho.forEach(i=>{
-    total+=i.preco;
-    carrinhoLista.innerHTML+=`<li>${i.nome} - R$ ${i.preco}</li>`;
+function atualizarCarrinho(){
+  carrinhoLista.innerHTML = "";
+  let total = 0;
+
+  carrinho.forEach(item => {
+    total += item.preco;
+    carrinhoLista.innerHTML += `<li>${item.nome} - R$ ${item.preco}</li>`;
   });
-  totalSpan.innerText=total.toFixed(2);
+
+  totalSpan = document.getElementById("total");
+  totalSpan.innerText = total.toFixed(2);
 }
 
 /* PEDIDO */
 async function enviarPedido(){
-  let nome=nomeCliente.value;
-  let total=carrinho.reduce((s,i)=>s+i.preco,0);
+  let nome = nomeCliente.value;
+  if(!nome) return alert("Digite seu nome");
 
-  let snap=await db.collection("pedidos").get();
-  let numero=String(snap.size+1).padStart(3,'0');
+  let total = carrinho.reduce((s,i)=>s+i.preco,0);
 
-  await db.collection("pedidos").add({numero,nome,carrinho,total});
+  let snap = await db.collection("pedidos").get();
+  let numero = String(snap.size + 1).padStart(3,'0');
 
-  carrinho=[];
-  atualizar();
-  alert("Enviado!");
+  await db.collection("pedidos").add({
+    numero, nome, carrinho, total
+  });
+
+  alert("Pedido enviado!");
+  carrinho = [];
+  atualizarCarrinho();
 }
 
 /* ADMIN */
 function carregarPedidos(){
-  db.collection("pedidos").onSnapshot(snap=>{
+  db.collection("pedidos").onSnapshot(snapshot => {
 
-    if(snap.size>ultimo){
-      if(somAtivo){
-        som.play();
-        navigator.vibrate?.(200);
-      }
+    if(snapshot.size > ultimoTotalPedidos){
+      document.getElementById("somPedido").play(); // 🔊 som
       alert("Novo pedido!");
     }
-    ultimo=snap.size;
+    ultimoTotalPedidos = snapshot.size;
 
-    pedidos.innerHTML="";
-    snap.forEach(doc=>{
-      let p=doc.data();
+    pedidos.innerHTML = "";
 
-      let lista="";
+    snapshot.forEach(doc => {
+      let p = doc.data();
+
+      let lista = "";
       p.carrinho.forEach(i=>{
-        lista+=`<li>${i.nome} - R$ ${i.preco}</li>`;
+        lista += `<li>${i.nome} - R$ ${i.preco}</li>`;
       });
 
-      pedidos.innerHTML+=`
+      pedidos.innerHTML += `
         <div class="card">
-          <b>#${p.numero} - ${p.nome}</b>
+          <h3>#${p.numero} - ${p.nome}</h3>
           <ul>${lista}</ul>
-          Total: R$ ${p.total}
+          <b>Total: R$ ${p.total}</b>
+          <br><br>
           <button class="btn" onclick="entregar('${doc.id}')">Entregue</button>
-        </div>`;
+        </div>
+      `;
     });
   });
 }
@@ -214,14 +268,7 @@ function carregarPedidos(){
 function entregar(id){
   db.collection("pedidos").doc(id).delete();
 }
-
-function addItem(){
-  db.collection("itens").add({
-    nome:nomeItem.value,
-    preco:parseFloat(precoItem.value)
-  });
-}
 </script>
 
 </body>
-</html>
+</html>0
