@@ -6,36 +6,112 @@
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"></script>
 
+  <style>
+    body {
+      font-family: Arial;
+      background: #111;
+      color: white;
+      text-align: center;
+    }
+
+    .inicio {
+      display: flex;
+      justify-content: center;
+      gap: 50px;
+      margin-top: 100px;
+    }
+
+    .box {
+      width: 200px;
+      height: 200px;
+      background: #222;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    .box:hover {
+      background: #444;
+      transform: scale(1.1);
+    }
+
+    #comprador, #admin {
+      display: none;
+      padding: 20px;
+    }
+
+    .painel {
+      display: flex;
+      gap: 20px;
+    }
+
+    .coluna {
+      width: 50%;
+      background: #222;
+      padding: 20px;
+      border-radius: 10px;
+    }
+
+    button {
+      margin: 5px;
+      padding: 10px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+  </style>
 </head>
 
 <body>
 
 <h1>🍔 Cardápio Online</h1>
 
-<button onclick="loginAdmin()">Admin</button>
-<button onclick="abrirComprador()">Comprador</button>
+<div class="inicio" id="inicio">
+  <div class="box" onclick="abrirComprador()">Comprador</div>
+  <div class="box" onclick="loginAdmin()">Admin</div>
+</div>
 
-<ul id="menu"></ul>
+<!-- COMPRADOR -->
+<div id="comprador">
+  <h2>Cardápio</h2>
+  <ul id="menu"></ul>
 
-<input id="nomeCliente" placeholder="Seu nome">
-<button onclick="enviarPedido()">Enviar Pedido</button>
+  <h3>Carrinho:</h3>
+  <ul id="carrinhoLista"></ul>
 
-<hr>
+  <input id="nomeCliente" placeholder="Seu nome">
+  <br>
+  <button onclick="enviarPedido()">Enviar Pedido</button>
+</div>
 
-<div id="admin" style="display:none;">
+<!-- ADMIN -->
+<div id="admin">
   <h2>Painel Admin</h2>
 
-  <input id="nomeItem" placeholder="Nome">
-  <input id="precoItem" placeholder="Preço">
-  <button onclick="addItem()">Adicionar</button>
+  <div class="painel">
+    
+    <div class="coluna">
+      <h3>Adicionar Item</h3>
+      <input id="nomeItem" placeholder="Nome">
+      <input id="precoItem" placeholder="Preço">
+      <button onclick="addItem()">Postar</button>
+    </div>
 
-  <h3>Pedidos:</h3>
-  <ul id="pedidos"></ul>
+    <div class="coluna">
+      <h3>Pedidos</h3>
+      <ul id="pedidos"></ul>
+    </div>
+
+  </div>
 </div>
 
 <script>
 const firebaseConfig = {
-// Import the functions you need from the SDKs you need
+ // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
@@ -60,14 +136,19 @@ const db = firebase.firestore();
 let carrinho = [];
 
 function abrirComprador(){
+  inicio.style.display = "none";
+  comprador.style.display = "block";
   carregarMenu();
 }
 
 function loginAdmin(){
   let senha = prompt("Senha:");
   if(senha === "admin123"){
-    document.getElementById("admin").style.display = "block";
+    inicio.style.display = "none";
+    admin.style.display = "block";
     carregarPedidos();
+  } else {
+    alert("Senha errada");
   }
 }
 
@@ -75,7 +156,9 @@ function addItem(){
   let nome = nomeItem.value;
   let preco = precoItem.value;
 
-  db.collection("itens").add({nome, preco});
+  if(nome && preco){
+    db.collection("itens").add({nome, preco});
+  }
 }
 
 function carregarMenu(){
@@ -93,10 +176,23 @@ function carregarMenu(){
 
 function addCarrinho(nome, preco){
   carrinho.push({nome, preco});
+  atualizarCarrinho();
+}
+
+function atualizarCarrinho(){
+  carrinhoLista.innerHTML = "";
+  carrinho.forEach(item => {
+    carrinhoLista.innerHTML += `<li>${item.nome} - R$ ${item.preco}</li>`;
+  });
 }
 
 function enviarPedido(){
   let nome = nomeCliente.value;
+
+  if(!nome){
+    alert("Digite seu nome!");
+    return;
+  }
 
   db.collection("pedidos").add({
     nome,
@@ -105,6 +201,7 @@ function enviarPedido(){
 
   alert("Pedido enviado!");
   carrinho = [];
+  atualizarCarrinho();
 }
 
 function carregarPedidos(){
