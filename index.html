@@ -1,107 +1,109 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Cardápio</title>
+  <title>Cardápio Pro</title>
 
-  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
   <style>
     body {
       font-family: Arial;
-      background: #111;
+      background: #0f0f0f;
       color: white;
-      text-align: center;
+      margin: 0;
     }
 
-    .inicio {
+    header {
+      background: #1f1f1f;
+      padding: 15px;
       display: flex;
-      justify-content: center;
-      gap: 50px;
-      margin-top: 100px;
+      justify-content: space-between;
     }
 
-    .box {
-      width: 200px;
-      height: 200px;
-      background: #222;
-      border-radius: 20px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 22px;
+    .btn {
+      padding: 10px;
+      border-radius: 8px;
+      background: #ff9800;
+      border: none;
       cursor: pointer;
+      color: white;
     }
 
-    #comprador, #admin {
-      display: none;
+    .container {
       padding: 20px;
+    }
+
+    .card {
+      background: #1f1f1f;
+      padding: 15px;
+      margin: 10px 0;
+      border-radius: 12px;
     }
 
     .menu-item {
       display: flex;
       justify-content: space-between;
-      background: #222;
-      padding: 10px;
-      margin: 5px;
-      border-radius: 10px;
+      align-items: center;
     }
 
-    .carrinho-box {
-      background: #222;
-      padding: 15px;
-      margin-top: 20px;
-      border-radius: 10px;
-    }
-
-    button {
-      padding: 8px;
-      border-radius: 5px;
-      cursor: pointer;
+    #comprador, #admin {
+      display: none;
     }
   </style>
 </head>
 
 <body>
 
-<h1>🍔 Cardápio Online</h1>
+<header>
+  <h2>🍔 Cardápio</h2>
+  <button class="btn" onclick="voltarInicio()">Início</button>
+</header>
 
-<div class="inicio" id="inicio">
-  <div class="box" onclick="abrirComprador()">Comprador</div>
-  <div class="box" onclick="loginAdmin()">Admin</div>
+<div class="container" id="inicio">
+  <button class="btn" onclick="abrirComprador()">Comprador</button>
+  <button class="btn" onclick="loginAdmin()">Admin</button>
 </div>
 
-<!-- COMPRADOR -->
-<div id="comprador">
-  <h2>Cardápio</h2>
+<div id="comprador" class="container">
+  <h3>Cardápio</h3>
   <div id="menu"></div>
 
-  <div class="carrinho-box">
+  <div class="card">
     <h3>🛒 Carrinho</h3>
     <ul id="carrinhoLista"></ul>
-    <p><b>Total: R$ <span id="total">0</span></b></p>
+    <p>Total: R$ <span id="total">0</span></p>
 
     <input id="nomeCliente" placeholder="Seu nome">
     <br><br>
-    <button onclick="enviarPedido()">Enviar Pedido</button>
+    <button class="btn" onclick="enviarPedido()">Enviar Pedido</button>
   </div>
 </div>
 
-<!-- ADMIN -->
-<div id="admin">
-  <h2>Painel Admin</h2>
+<div id="admin" class="container">
+  <h3>Painel Admin</h3>
 
-  <input id="nomeItem" placeholder="Nome">
-  <input id="precoItem" placeholder="Preço">
-  <button onclick="addItem()">Postar</button>
+  <div class="card">
+    <input id="nomeItem" placeholder="Nome">
+    <input id="precoItem" placeholder="Preço">
+    <button class="btn" onclick="addItem()">Postar</button>
+  </div>
 
-  <h3>Itens</h3>
-  <ul id="listaItens"></ul>
+  <div class="card">
+    <h3>Itens</h3>
+    <ul id="listaItens"></ul>
+  </div>
 
-  <h3>Pedidos</h3>
-  <div id="pedidos"></div>
+  <div class="card">
+    <h3>Pedidos</h3>
+    <div id="pedidos"></div>
+  </div>
 </div>
+
+<!-- 🔊 SOM -->
+<audio id="somPedido">
+  <source src="https://www.soundjay.com/buttons/sounds/button-3.mp3" type="audio/mpeg">
+</audio>
 
 <script>
 const firebaseConfig = {
@@ -117,8 +119,15 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
 let carrinho = [];
+let ultimoTotalPedidos = 0;
 
 /* TELAS */
+function voltarInicio(){
+  inicio.style.display = "block";
+  comprador.style.display = "none";
+  admin.style.display = "none";
+}
+
 function abrirComprador(){
   inicio.style.display = "none";
   comprador.style.display = "block";
@@ -151,6 +160,7 @@ function carregarItens(){
 
     snapshot.forEach(doc => {
       let item = doc.data();
+
       listaItens.innerHTML += `
         <li>
           ${item.nome} - R$ ${item.preco}
@@ -165,19 +175,19 @@ function excluirItem(id){
   db.collection("itens").doc(id).delete();
 }
 
-/* MENU */
+/* MENU (CORRIGIDO) */
 function carregarMenu(){
   db.collection("itens").onSnapshot(snapshot => {
-    menu.innerHTML = "";
+    document.getElementById("menu").innerHTML = "";
 
     snapshot.forEach(doc => {
       let item = doc.data();
 
-      menu.innerHTML += `
-        <div class="menu-item">
+      document.getElementById("menu").innerHTML += `
+        <div class="card menu-item">
           <span>${item.nome}</span>
           <span>R$ ${item.preco}</span>
-          <button onclick="addCarrinho('${item.nome}', ${item.preco})">+</button>
+          <button class="btn" onclick="addCarrinho('${item.nome}', ${item.preco})">+</button>
         </div>
       `;
     });
@@ -199,24 +209,22 @@ function atualizarCarrinho(){
     carrinhoLista.innerHTML += `<li>${item.nome} - R$ ${item.preco}</li>`;
   });
 
-  document.getElementById("total").innerText = total.toFixed(2);
+  totalSpan = document.getElementById("total");
+  totalSpan.innerText = total.toFixed(2);
 }
 
 /* PEDIDO */
-function enviarPedido(){
+async function enviarPedido(){
   let nome = nomeCliente.value;
+  if(!nome) return alert("Digite seu nome");
 
-  if(!nome){
-    alert("Digite seu nome!");
-    return;
-  }
+  let total = carrinho.reduce((s,i)=>s+i.preco,0);
 
-  let total = carrinho.reduce((s, i) => s + i.preco, 0);
+  let snap = await db.collection("pedidos").get();
+  let numero = String(snap.size + 1).padStart(3,'0');
 
-  db.collection("pedidos").add({
-    nome,
-    carrinho,
-    total
+  await db.collection("pedidos").add({
+    numero, nome, carrinho, total
   });
 
   alert("Pedido enviado!");
@@ -224,28 +232,41 @@ function enviarPedido(){
   atualizarCarrinho();
 }
 
-/* ADMIN PEDIDOS */
+/* ADMIN */
 function carregarPedidos(){
   db.collection("pedidos").onSnapshot(snapshot => {
+
+    if(snapshot.size > ultimoTotalPedidos){
+      document.getElementById("somPedido").play(); // 🔊 som
+      alert("Novo pedido!");
+    }
+    ultimoTotalPedidos = snapshot.size;
+
     pedidos.innerHTML = "";
 
     snapshot.forEach(doc => {
       let p = doc.data();
 
       let lista = "";
-      p.carrinho.forEach(item => {
-        lista += `<li>${item.nome} - R$ ${item.preco}</li>`;
+      p.carrinho.forEach(i=>{
+        lista += `<li>${i.nome} - R$ ${i.preco}</li>`;
       });
 
       pedidos.innerHTML += `
-        <div style="background:#222; padding:10px; margin:10px; border-radius:10px;">
-          <h3>${p.nome}</h3>
+        <div class="card">
+          <h3>#${p.numero} - ${p.nome}</h3>
           <ul>${lista}</ul>
           <b>Total: R$ ${p.total}</b>
+          <br><br>
+          <button class="btn" onclick="entregar('${doc.id}')">Entregue</button>
         </div>
       `;
     });
   });
+}
+
+function entregar(id){
+  db.collection("pedidos").doc(id).delete();
 }
 </script>
 
