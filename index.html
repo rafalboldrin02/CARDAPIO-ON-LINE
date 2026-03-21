@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Cardápio</title>
+</head>
+<body>
+
+<h1>🍔 Cardápio Online</h1>
+
+<button onclick="loginAdmin()">Administrador</button>
+
+<h2>Itens:</h2>
+<ul id="lista"></ul>
+
+<div id="adminArea" style="display:none;">
+  <h2>Painel Admin</h2>
+  
+  <input id="nome" placeholder="Nome da comida">
+  <input id="preco" placeholder="Preço">
+  <button onclick="adicionar()">Postar</button>
+</div>
+
+<script>
+let itens = JSON.parse(localStorage.getItem("itens")) || [];
+
+function salvar() {
+  localStorage.setItem("itens", JSON.stringify(itens));
+  mostrar();
+}
+
+function mostrar() {
+  let lista = document.getElementById("lista");
+  lista.innerHTML = "";
+
+  itens.forEach((item, i) => {
+    let li = document.createElement("li");
+    li.innerHTML = item.nome + " - R$ " + item.preco +
+      " <button onclick='deletar("+i+")'>❌</button>";
+    lista.appendChild(li);
+  });
+}
+
+function adicionar() {
+  let nome = document.getElementById("nome").value;
+  let preco = document.getElementById("preco").value;
+
+  if(nome && preco){
+    itens.push({nome, preco});
+    salvar();
+  }
+}
+
+function deletar(i){
+  itens.splice(i,1);
+  salvar();
+}
+
+function loginAdmin(){
+  let senha = prompt("Digite a senha:");
+  if(senha === "admin123"){
+    document.getElementById("adminArea").style.display = "block";
+  } else {
+    alert("Senha errada");
+  }
+}
+
+mostrar();
+</script>
+
+</body>
+</html>
