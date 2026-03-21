@@ -3,6 +3,8 @@
 <head>
   <title>Cardápio Pro</title>
 
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
@@ -19,19 +21,23 @@
       padding: 15px;
       display: flex;
       justify-content: space-between;
+      align-items: center;
     }
 
     .btn {
-      padding: 10px;
-      border-radius: 8px;
+      padding: 14px;
+      border-radius: 10px;
       background: #ff9800;
       border: none;
       cursor: pointer;
       color: white;
+      font-size: 16px;
+      width: 100%;
+      margin-top: 5px;
     }
 
     .container {
-      padding: 20px;
+      padding: 15px;
     }
 
     .card {
@@ -43,8 +49,23 @@
 
     .menu-item {
       display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .linha {
+      display: flex;
       justify-content: space-between;
       align-items: center;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px;
+      margin-top: 5px;
+      border-radius: 8px;
+      border: none;
+      font-size: 16px;
     }
 
     #comprador, #admin {
@@ -57,12 +78,12 @@
 
 <header>
   <h2>🍔 Cardápio</h2>
-  <button class="btn" onclick="voltarInicio()">Início</button>
+  <button class="btn" style="width:auto;" onclick="voltarInicio()">Início</button>
 </header>
 
 <div class="container" id="inicio">
-  <button class="btn" onclick="abrirComprador()">Comprador</button>
-  <button class="btn" onclick="loginAdmin()">Admin</button>
+  <button class="btn" onclick="abrirComprador()">🛒 Entrar como Comprador</button>
+  <button class="btn" onclick="loginAdmin()">🔐 Entrar como Admin</button>
 </div>
 
 <div id="comprador" class="container">
@@ -72,11 +93,10 @@
   <div class="card">
     <h3>🛒 Carrinho</h3>
     <ul id="carrinhoLista"></ul>
-    <p>Total: R$ <span id="total">0</span></p>
+    <p><b>Total: R$ <span id="total">0</span></b></p>
 
-    <input id="nomeCliente" placeholder="Seu nome">
-    <br><br>
-    <button class="btn" onclick="enviarPedido()">Enviar Pedido</button>
+    <input id="nomeCliente" placeholder="Digite seu nome">
+    <button class="btn" onclick="enviarPedido()">📤 Enviar Pedido</button>
   </div>
 </div>
 
@@ -84,9 +104,9 @@
   <h3>Painel Admin</h3>
 
   <div class="card">
-    <input id="nomeItem" placeholder="Nome">
+    <input id="nomeItem" placeholder="Nome do item">
     <input id="precoItem" placeholder="Preço">
-    <button class="btn" onclick="addItem()">Postar</button>
+    <button class="btn" onclick="addItem()">➕ Postar Item</button>
   </div>
 
   <div class="card">
@@ -100,19 +120,15 @@
   </div>
 </div>
 
-<!-- 🔊 SOM -->
 <audio id="somPedido">
-  <source src="https://www.soundjay.com/buttons/sounds/button-3.mp3" type="audio/mpeg">
+  <source src="https://www.soundjay.com/buttons/sounds/button-3.mp3">
 </audio>
 
 <script>
 const firebaseConfig = {
-  apiKey: "AIzaSyBAOc1VyUxB2oVSMV5KC96VHgtdZ_dGBRI",
+  apiKey: "AIzaSy...",
   authDomain: "cardapio-app-b99f5.firebaseapp.com",
   projectId: "cardapio-app-b99f5",
-  storageBucket: "cardapio-app-b99f5.appspot.com",
-  messagingSenderId: "737356348366",
-  appId: "1:737356348366:web:e4e4983e198139f9bd499f"
 };
 
 firebase.initializeApp(firebaseConfig);
@@ -121,7 +137,6 @@ const db = firebase.firestore();
 let carrinho = [];
 let ultimoTotalPedidos = 0;
 
-/* TELAS */
 function voltarInicio(){
   inicio.style.display = "block";
   comprador.style.display = "none";
@@ -144,7 +159,6 @@ function loginAdmin(){
   }
 }
 
-/* ITENS */
 function addItem(){
   let nome = nomeItem.value;
   let preco = parseFloat(precoItem.value);
@@ -157,16 +171,11 @@ function addItem(){
 function carregarItens(){
   db.collection("itens").onSnapshot(snapshot => {
     listaItens.innerHTML = "";
-
     snapshot.forEach(doc => {
       let item = doc.data();
-
       listaItens.innerHTML += `
-        <li>
-          ${item.nome} - R$ ${item.preco}
-          <button onclick="excluirItem('${doc.id}')">❌</button>
-        </li>
-      `;
+        <li>${item.nome} - R$ ${item.preco}
+        <button class="btn" onclick="excluirItem('${doc.id}')">❌ Excluir</button></li>`;
     });
   });
 }
@@ -175,26 +184,23 @@ function excluirItem(id){
   db.collection("itens").doc(id).delete();
 }
 
-/* MENU (CORRIGIDO) */
 function carregarMenu(){
   db.collection("itens").onSnapshot(snapshot => {
-    document.getElementById("menu").innerHTML = "";
-
+    menu.innerHTML = "";
     snapshot.forEach(doc => {
       let item = doc.data();
-
-      document.getElementById("menu").innerHTML += `
+      menu.innerHTML += `
         <div class="card menu-item">
-          <span>${item.nome}</span>
-          <span>R$ ${item.preco}</span>
-          <button class="btn" onclick="addCarrinho('${item.nome}', ${item.preco})">+</button>
-        </div>
-      `;
+          <div class="linha">
+            <span>${item.nome}</span>
+            <span>R$ ${item.preco}</span>
+          </div>
+          <button class="btn" onclick="addCarrinho('${item.nome}', ${item.preco})">➕ Adicionar</button>
+        </div>`;
     });
   });
 }
 
-/* CARRINHO */
 function addCarrinho(nome, preco){
   carrinho.push({nome, preco});
   atualizarCarrinho();
@@ -209,11 +215,9 @@ function atualizarCarrinho(){
     carrinhoLista.innerHTML += `<li>${item.nome} - R$ ${item.preco}</li>`;
   });
 
-  totalSpan = document.getElementById("total");
-  totalSpan.innerText = total.toFixed(2);
+  document.getElementById("total").innerText = total.toFixed(2);
 }
 
-/* PEDIDO */
 async function enviarPedido(){
   let nome = nomeCliente.value;
   if(!nome) return alert("Digite seu nome");
@@ -232,13 +236,11 @@ async function enviarPedido(){
   atualizarCarrinho();
 }
 
-/* ADMIN */
 function carregarPedidos(){
   db.collection("pedidos").onSnapshot(snapshot => {
 
     if(snapshot.size > ultimoTotalPedidos){
-      document.getElementById("somPedido").play(); // 🔊 som
-      alert("Novo pedido!");
+      document.getElementById("somPedido").play();
     }
     ultimoTotalPedidos = snapshot.size;
 
@@ -257,10 +259,8 @@ function carregarPedidos(){
           <h3>#${p.numero} - ${p.nome}</h3>
           <ul>${lista}</ul>
           <b>Total: R$ ${p.total}</b>
-          <br><br>
-          <button class="btn" onclick="entregar('${doc.id}')">Entregue</button>
-        </div>
-      `;
+          <button class="btn" onclick="entregar('${doc.id}')">✅ Entregue</button>
+        </div>`;
     });
   });
 }
@@ -271,4 +271,4 @@ function entregar(id){
 </script>
 
 </body>
-</html>0
+</html>
