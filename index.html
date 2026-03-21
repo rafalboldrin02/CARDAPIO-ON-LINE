@@ -2,69 +2,120 @@
 <html>
 <head>
   <title>Cardápio</title>
+
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"></script>
+
 </head>
+
 <body>
 
 <h1>🍔 Cardápio Online</h1>
 
-<button onclick="loginAdmin()">Administrador</button>
+<button onclick="loginAdmin()">Admin</button>
+<button onclick="abrirComprador()">Comprador</button>
 
-<h2>Itens:</h2>
-<ul id="lista"></ul>
+<ul id="menu"></ul>
 
-<div id="adminArea" style="display:none;">
+<input id="nomeCliente" placeholder="Seu nome">
+<button onclick="enviarPedido()">Enviar Pedido</button>
+
+<hr>
+
+<div id="admin" style="display:none;">
   <h2>Painel Admin</h2>
-  
-  <input id="nome" placeholder="Nome da comida">
-  <input id="preco" placeholder="Preço">
-  <button onclick="adicionar()">Postar</button>
+
+  <input id="nomeItem" placeholder="Nome">
+  <input id="precoItem" placeholder="Preço">
+  <button onclick="addItem()">Adicionar</button>
+
+  <h3>Pedidos:</h3>
+  <ul id="pedidos"></ul>
 </div>
 
 <script>
-let itens = JSON.parse(localStorage.getItem("itens")) || [];
+const firebaseConfig = {
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
 
-function salvar() {
-  localStorage.setItem("itens", JSON.stringify(itens));
-  mostrar();
-}
+// Your web app's Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyBAOc1VyUxB2oVSMV5KC96VHgtdZ_dGBRI",
+  authDomain: "cardapio-app-b99f5.firebaseapp.com",
+  projectId: "cardapio-app-b99f5",
+  storageBucket: "cardapio-app-b99f5.firebasestorage.app",
+  messagingSenderId: "737356348366",
+  appId: "1:737356348366:web:e4e4983e198139f9bd499f"
+};
 
-function mostrar() {
-  let lista = document.getElementById("lista");
-  lista.innerHTML = "";
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+};
 
-  itens.forEach((item, i) => {
-    let li = document.createElement("li");
-    li.innerHTML = item.nome + " - R$ " + item.preco +
-      " <button onclick='deletar("+i+")'>❌</button>";
-    lista.appendChild(li);
-  });
-}
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
 
-function adicionar() {
-  let nome = document.getElementById("nome").value;
-  let preco = document.getElementById("preco").value;
+let carrinho = [];
 
-  if(nome && preco){
-    itens.push({nome, preco});
-    salvar();
-  }
-}
-
-function deletar(i){
-  itens.splice(i,1);
-  salvar();
+function abrirComprador(){
+  carregarMenu();
 }
 
 function loginAdmin(){
-  let senha = prompt("Digite a senha:");
+  let senha = prompt("Senha:");
   if(senha === "admin123"){
-    document.getElementById("adminArea").style.display = "block";
-  } else {
-    alert("Senha errada");
+    document.getElementById("admin").style.display = "block";
+    carregarPedidos();
   }
 }
 
-mostrar();
+function addItem(){
+  let nome = nomeItem.value;
+  let preco = precoItem.value;
+
+  db.collection("itens").add({nome, preco});
+}
+
+function carregarMenu(){
+  db.collection("itens").onSnapshot(snapshot => {
+    menu.innerHTML = "";
+    snapshot.forEach(doc => {
+      let item = doc.data();
+      menu.innerHTML += `
+        <li>${item.nome} - R$ ${item.preco}
+        <button onclick="addCarrinho('${item.nome}', ${item.preco})">+</button>
+        </li>`;
+    });
+  });
+}
+
+function addCarrinho(nome, preco){
+  carrinho.push({nome, preco});
+}
+
+function enviarPedido(){
+  let nome = nomeCliente.value;
+
+  db.collection("pedidos").add({
+    nome,
+    carrinho
+  });
+
+  alert("Pedido enviado!");
+  carrinho = [];
+}
+
+function carregarPedidos(){
+  db.collection("pedidos").onSnapshot(snapshot => {
+    pedidos.innerHTML = "";
+    snapshot.forEach(doc => {
+      let p = doc.data();
+      pedidos.innerHTML += `<li>${p.nome} - ${JSON.stringify(p.carrinho)}</li>`;
+    });
+  });
+}
 </script>
 
 </body>
