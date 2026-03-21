@@ -5,6 +5,9 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json">
+
   <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
@@ -32,7 +35,6 @@
       background: #ff9800;
       color: white;
       font-size: 16px;
-      cursor: pointer;
     }
 
     .card {
@@ -45,15 +47,6 @@
     #comprador, #admin {
       display: none;
     }
-
-    #versao {
-      position: fixed;
-      bottom: 5px;
-      width: 100%;
-      text-align: center;
-      font-size: 12px;
-      color: #aaa;
-    }
   </style>
 </head>
 
@@ -64,6 +57,7 @@
 </header>
 
 <div id="inicio" class="card">
+  <button class="btn" onclick="ativarSom()">🔊 Ativar Som</button>
   <button class="btn" onclick="abrirComprador()">Comprador</button>
   <button class="btn" onclick="loginAdmin()">Admin</button>
 </div>
@@ -99,8 +93,6 @@
   <source src="https://assets.mixkit.co/sfx/preview/mixkit-alert-quick-chime-766.mp3">
 </audio>
 
-<div id="versao">Versão 1.0.0</div>
-
 <script>
 const firebaseConfig = {
   apiKey: "AIzaSyBAOc1VyUxB2oVSMV5KC96VHgtdZ_dGBRI",
@@ -112,117 +104,109 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
 let carrinho = [];
-let ultimoTotal = 0;
+let somAtivo = false;
+let ultimo = 0;
+
+/* 🔊 ATIVAR SOM */
+function ativarSom(){
+  som.play();
+  som.pause();
+  som.currentTime = 0;
+  somAtivo = true;
+  alert("Som ativado!");
+}
 
 /* TELAS */
 function abrirComprador(){
-  document.getElementById("inicio").style.display="none";
-  document.getElementById("comprador").style.display="block";
+  inicio.style.display="none";
+  comprador.style.display="block";
   carregarMenu();
 }
 
 function loginAdmin(){
-  let senha = prompt("Senha:");
-  if(senha === "admin123"){
-    document.getElementById("inicio").style.display="none";
-    document.getElementById("admin").style.display="block";
+  let s = prompt("Senha:");
+  if(s==="admin123"){
+    inicio.style.display="none";
+    admin.style.display="block";
     carregarPedidos();
   }
 }
 
 /* MENU */
 function carregarMenu(){
-  db.collection("itens").onSnapshot(snapshot=>{
-    let menu = document.getElementById("menu");
-    menu.innerHTML = "";
-
-    snapshot.forEach(doc=>{
-      let item = doc.data();
-
+  db.collection("itens").onSnapshot(snap=>{
+    menu.innerHTML="";
+    snap.forEach(doc=>{
+      let i = doc.data();
       menu.innerHTML += `
         <div class="card">
-          ${item.nome} - R$ ${item.preco}
-          <button class="btn" onclick="addCarrinho('${item.nome}', ${item.preco})">+</button>
-        </div>
-      `;
+          ${i.nome} - R$ ${i.preco}
+          <button class="btn" onclick="addCarrinho('${i.nome}',${i.preco})">+</button>
+        </div>`;
     });
   });
 }
 
 /* CARRINHO */
-function addCarrinho(nome, preco){
-  carrinho.push({nome, preco});
-  atualizarCarrinho();
+function addCarrinho(nome,preco){
+  carrinho.push({nome,preco});
+  atualizar();
 }
 
-function atualizarCarrinho(){
-  let lista = document.getElementById("carrinhoLista");
-  let totalEl = document.getElementById("total");
-
-  lista.innerHTML = "";
-  let total = 0;
-
-  carrinho.forEach(item=>{
-    total += item.preco;
-    lista.innerHTML += `<li>${item.nome} - R$ ${item.preco}</li>`;
+function atualizar(){
+  carrinhoLista.innerHTML="";
+  let total=0;
+  carrinho.forEach(i=>{
+    total+=i.preco;
+    carrinhoLista.innerHTML+=`<li>${i.nome} - R$ ${i.preco}</li>`;
   });
-
-  totalEl.innerText = total.toFixed(2);
+  totalSpan.innerText=total.toFixed(2);
 }
 
 /* PEDIDO */
 async function enviarPedido(){
-  let nome = document.getElementById("nomeCliente").value;
+  let nome=nomeCliente.value;
+  let total=carrinho.reduce((s,i)=>s+i.preco,0);
 
-  if(!nome){
-    alert("Digite seu nome");
-    return;
-  }
+  let snap=await db.collection("pedidos").get();
+  let numero=String(snap.size+1).padStart(3,'0');
 
-  let total = carrinho.reduce((s,i)=>s+i.preco,0);
+  await db.collection("pedidos").add({numero,nome,carrinho,total});
 
-  let snap = await db.collection("pedidos").get();
-  let numero = String(snap.size + 1).padStart(3,'0');
-
-  await db.collection("pedidos").add({
-    numero, nome, carrinho, total
-  });
-
-  alert("Pedido enviado!");
-  carrinho = [];
-  atualizarCarrinho();
+  carrinho=[];
+  atualizar();
+  alert("Enviado!");
 }
 
 /* ADMIN */
 function carregarPedidos(){
-  db.collection("pedidos").onSnapshot(snapshot=>{
+  db.collection("pedidos").onSnapshot(snap=>{
 
-    // 🔊 SOM quando chega novo pedido
-    if(snapshot.size > ultimoTotal){
-      document.getElementById("som").play();
-      navigator.vibrate?.(200);
+    if(snap.size>ultimo){
+      if(somAtivo){
+        som.play();
+        navigator.vibrate?.(200);
+      }
+      alert("Novo pedido!");
     }
-    ultimoTotal = snapshot.size;
+    ultimo=snap.size;
 
-    let pedidosDiv = document.getElementById("pedidos");
-    pedidosDiv.innerHTML = "";
+    pedidos.innerHTML="";
+    snap.forEach(doc=>{
+      let p=doc.data();
 
-    snapshot.forEach(doc=>{
-      let p = doc.data();
-
-      let lista = "";
-      p.carrinho.forEach(item=>{
-        lista += `<li>${item.nome} - R$ ${item.preco}</li>`;
+      let lista="";
+      p.carrinho.forEach(i=>{
+        lista+=`<li>${i.nome} - R$ ${i.preco}</li>`;
       });
 
-      pedidosDiv.innerHTML += `
+      pedidos.innerHTML+=`
         <div class="card">
           <b>#${p.numero} - ${p.nome}</b>
           <ul>${lista}</ul>
           Total: R$ ${p.total}
           <button class="btn" onclick="entregar('${doc.id}')">Entregue</button>
-        </div>
-      `;
+        </div>`;
     });
   });
 }
@@ -231,14 +215,11 @@ function entregar(id){
   db.collection("pedidos").doc(id).delete();
 }
 
-/* ADMIN - ADD ITEM */
 function addItem(){
-  let nome = document.getElementById("nomeItem").value;
-  let preco = parseFloat(document.getElementById("precoItem").value);
-
-  if(nome && preco){
-    db.collection("itens").add({nome, preco});
-  }
+  db.collection("itens").add({
+    nome:nomeItem.value,
+    preco:parseFloat(precoItem.value)
+  });
 }
 </script>
 
