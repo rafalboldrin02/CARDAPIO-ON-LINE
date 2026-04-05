@@ -1,127 +1,146 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Cardápio Digital</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cardápio Pro</title>
 
-  <!-- Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
-  <!-- QR Code PIX -->
-  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+<style>
+body{
+  margin:0;
+  font-family:Arial;
+  background:#0f0f0f;
+  color:white;
+}
 
-  <style>
-    body {
-      margin:0;
-      font-family: Arial;
-      background:#0f0f0f;
-      color:white;
-    }
+/* HEADER */
+header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:10px;
+  background:#1a1a1a;
+}
 
-    header {
-      padding:15px;
-      text-align:center;
-      background:#1f1f1f;
-      font-size:20px;
-    }
+.icon{
+  font-size:20px;
+  cursor:pointer;
+}
 
-    .container {
-      padding:10px;
-    }
+/* MENU */
+.container{
+  padding:10px;
+}
 
-    .card {
-      background:#1f1f1f;
-      margin:10px 0;
-      padding:10px;
-      border-radius:10px;
-    }
+.card{
+  background:#1f1f1f;
+  border-radius:15px;
+  margin:10px 0;
+  overflow:hidden;
+}
 
-    .img {
-      width:100%;
-      border-radius:10px;
-    }
+.card img{
+  width:100%;
+  height:150px;
+  object-fit:cover;
+}
 
-    .btn {
-      width:100%;
-      padding:12px;
-      margin-top:5px;
-      border:none;
-      border-radius:8px;
-      background:#ff9800;
-      color:white;
-      font-size:16px;
-    }
+.card-content{
+  padding:10px;
+}
 
-    #admin, #comprador, #finalizar {
-      display:none;
-    }
+.btn{
+  width:100%;
+  padding:10px;
+  border:none;
+  border-radius:10px;
+  background:#ff9800;
+  color:white;
+  margin-top:5px;
+}
 
-    #qrcode {
-      margin-top:10px;
-      text-align:center;
-    }
+/* CARRINHO */
+#carrinhoBox{
+  position:fixed;
+  top:0;
+  right:-100%;
+  width:80%;
+  height:100%;
+  background:#111;
+  transition:0.3s;
+  padding:10px;
+  z-index:10;
+}
 
-    #versao {
-      position:fixed;
-      bottom:5px;
-      width:100%;
-      text-align:center;
-      font-size:12px;
-      color:#aaa;
-    }
-  </style>
+/* SIDEBAR */
+#menuLateral{
+  position:fixed;
+  top:0;
+  left:-100%;
+  width:70%;
+  height:100%;
+  background:#111;
+  transition:0.3s;
+  padding:15px;
+  z-index:10;
+}
+
+/* ADMIN */
+#admin{
+  display:none;
+}
+
+/* PEDIDOS */
+.pedido{
+  background:#1f1f1f;
+  padding:10px;
+  border-radius:10px;
+  margin:10px 0;
+}
+</style>
 </head>
 
 <body>
 
-<header id="nomeRestaurante">🍔 SEU RESTAURANTE</header>
+<header>
+  <span class="icon" onclick="abrirMenu()">☰</span>
+  <h3 id="nomeRestaurante">Seu Restaurante</h3>
+  <span class="icon" onclick="abrirCarrinho()">🛒</span>
+</header>
 
-<div class="container" id="inicio">
-  <button class="btn" onclick="abrirComprador()">Ver Cardápio</button>
+<div class="container" id="menu"></div>
+
+<!-- CARRINHO -->
+<div id="carrinhoBox">
+  <h3>Carrinho</h3>
+  <ul id="listaCarrinho"></ul>
+  <b>Total: R$ <span id="total">0</span></b>
+
+  <input id="mesa" placeholder="Mesa">
+  <button class="btn" onclick="finalizar()">Finalizar</button>
+</div>
+
+<!-- MENU LATERAL -->
+<div id="menuLateral">
+  <h3>Opções</h3>
   <button class="btn" onclick="loginAdmin()">Admin</button>
 </div>
 
-<div id="comprador" class="container">
-  <div id="menu"></div>
+<!-- ADMIN -->
+<div id="admin">
+  <h3>Painel Cozinha</h3>
 
-  <div class="card">
-    <h3>🛒 Carrinho</h3>
-    <ul id="carrinhoLista"></ul>
-    <b>Total: R$ <span id="total">0</span></b>
-
-    <input id="mesa" placeholder="Mesa (ex: 5)">
-    <button class="btn" onclick="irFinalizar()">Finalizar</button>
-  </div>
-
-  <button class="btn" onclick="abrirBatatais()">🍔 Batatais Food</button>
-</div>
-
-<div id="finalizar" class="container">
-  <div class="card">
-    <h3>Resumo</h3>
-    <ul id="resumo"></ul>
-    <b>Total: R$ <span id="totalFinal"></span></b>
-
-    <h3>💳 Pagar com Pix</h3>
-    <canvas id="qrcode"></canvas>
-
-    <button class="btn" onclick="enviarPedido()">Confirmar Pedido</button>
-  </div>
-</div>
-
-<div id="admin" class="container">
-  <div class="card">
+  <div>
     <input id="nomeItem" placeholder="Nome">
     <input id="precoItem" placeholder="Preço">
-    <input id="imgItem" placeholder="URL da imagem">
+    <input id="imgItem" placeholder="Imagem (URL)">
     <button class="btn" onclick="addItem()">Adicionar</button>
   </div>
 
   <div id="pedidos"></div>
 </div>
-
-<div id="versao">Versão 2.0.0</div>
 
 <script>
 const firebaseConfig = {
@@ -133,23 +152,7 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-let carrinho = [];
-
-/* TELAS */
-function abrirComprador(){
-  inicio.style.display="none";
-  comprador.style.display="block";
-  carregarMenu();
-}
-
-function loginAdmin(){
-  let s = prompt("Senha:");
-  if(s==="admin123"){
-    inicio.style.display="none";
-    admin.style.display="block";
-    carregarPedidos();
-  }
-}
+let carrinho=[];
 
 /* MENU */
 function carregarMenu(){
@@ -158,57 +161,47 @@ function carregarMenu(){
     snap.forEach(doc=>{
       let i=doc.data();
 
+      let img = i.img || "https://source.unsplash.com/400x300/?food";
+
       menu.innerHTML+=`
         <div class="card">
-          <img src="${i.img}" class="img">
-          <h3>${i.nome}</h3>
-          <p>R$ ${i.preco}</p>
-          <button class="btn" onclick="addCarrinho('${i.nome}',${i.preco})">Adicionar</button>
-        </div>`;
+          <img src="${img}">
+          <div class="card-content">
+            <h3>${i.nome}</h3>
+            <p>R$ ${i.preco}</p>
+            <button class="btn" onclick="addCarrinho('${i.nome}',${i.preco})">Adicionar</button>
+          </div>
+        </div>
+      `;
     });
   });
 }
 
 /* CARRINHO */
-function addCarrinho(nome,preco){
-  carrinho.push({nome,preco});
-  atualizar();
+function abrirCarrinho(){
+  carrinhoBox.style.right="0";
 }
 
-function atualizar(){
-  carrinhoLista.innerHTML="";
+function addCarrinho(nome,preco){
+  carrinho.push({nome,preco});
+  atualizarCarrinho();
+}
+
+function atualizarCarrinho(){
+  listaCarrinho.innerHTML="";
   let total=0;
 
   carrinho.forEach(i=>{
     total+=i.preco;
-    carrinhoLista.innerHTML+=`<li>${i.nome} - R$ ${i.preco}</li>`;
+    listaCarrinho.innerHTML+=`<li>${i.nome} - R$ ${i.preco}</li>`;
   });
 
-  totalSpan.innerText=total.toFixed(2);
+  document.getElementById("total").innerText=total.toFixed(2);
 }
 
 /* FINALIZAR */
-function irFinalizar(){
-  comprador.style.display="none";
-  finalizar.style.display="block";
-
-  let total=0;
-  resumo.innerHTML="";
-
-  carrinho.forEach(i=>{
-    total+=i.preco;
-    resumo.innerHTML+=`<li>${i.nome} - R$ ${i.preco}</li>`;
-  });
-
-  totalFinal.innerText=total.toFixed(2);
-
-  // PIX QR (simples)
-  QRCode.toCanvas(document.getElementById('qrcode'), "PIX_DO_CLIENTE");
-}
-
-/* PEDIDO */
-async function enviarPedido(){
-  let mesa=document.getElementById("mesa").value;
+async function finalizar(){
+  let mesa=mesa.value;
   let total=carrinho.reduce((s,i)=>s+i.preco,0);
 
   let snap=await db.collection("pedidos").get();
@@ -220,9 +213,24 @@ async function enviarPedido(){
 
   alert("Pedido enviado!");
   carrinho=[];
+  atualizarCarrinho();
+}
+
+/* MENU LATERAL */
+function abrirMenu(){
+  menuLateral.style.left="0";
 }
 
 /* ADMIN */
+function loginAdmin(){
+  let s=prompt("Senha:");
+  if(s==="admin123"){
+    admin.style.display="block";
+    carregarPedidos();
+  }
+}
+
+/* PEDIDOS (COZINHA) */
 function carregarPedidos(){
   db.collection("pedidos").onSnapshot(snap=>{
     pedidos.innerHTML="";
@@ -236,12 +244,13 @@ function carregarPedidos(){
       });
 
       pedidos.innerHTML+=`
-        <div class="card">
+        <div class="pedido">
           <b>#${p.numero} - Mesa ${p.mesa}</b>
           <ul>${lista}</ul>
-          Total: R$ ${p.total}
+          <b>R$ ${p.total}</b>
           <button class="btn" onclick="entregar('${doc.id}')">Entregue</button>
-        </div>`;
+        </div>
+      `;
     });
   });
 }
@@ -250,7 +259,7 @@ function entregar(id){
   db.collection("pedidos").doc(id).delete();
 }
 
-/* ADMIN ADD */
+/* ADD ITEM */
 function addItem(){
   db.collection("itens").add({
     nome:nomeItem.value,
@@ -259,10 +268,7 @@ function addItem(){
   });
 }
 
-/* BOTÃO EXTERNO */
-function abrirBatatais(){
-  window.open("https://google.com");
-}
+carregarMenu();
 </script>
 
 </body>
