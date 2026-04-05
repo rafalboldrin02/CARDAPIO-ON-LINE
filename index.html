@@ -11,8 +11,8 @@
 body{
   margin:0;
   font-family:Arial;
-  background:#0f0f0f;
-  color:white;
+  background:#f5f5f5;
+  color:#222;
 }
 
 /* HEADER */
@@ -20,25 +20,25 @@ header{
   display:flex;
   justify-content:space-between;
   align-items:center;
-  padding:10px;
-  background:#1a1a1a;
+  padding:12px;
+  background:white;
+  box-shadow:0 2px 5px rgba(0,0,0,0.05);
+  position:sticky;
+  top:0;
 }
 
 .icon{
-  font-size:20px;
+  font-size:22px;
   cursor:pointer;
 }
 
-/* MENU */
-.container{
-  padding:10px;
-}
-
+/* CARD */
 .card{
-  background:#1f1f1f;
+  background:white;
   border-radius:15px;
-  margin:10px 0;
+  margin:12px;
   overflow:hidden;
+  box-shadow:0 4px 10px rgba(0,0,0,0.08);
 }
 
 .card img{
@@ -48,17 +48,18 @@ header{
 }
 
 .card-content{
-  padding:10px;
+  padding:12px;
 }
 
 .btn{
   width:100%;
-  padding:10px;
+  padding:12px;
   border:none;
   border-radius:10px;
-  background:#ff9800;
+  background:#333;
   color:white;
-  margin-top:5px;
+  margin-top:8px;
+  font-size:15px;
 }
 
 /* CARRINHO */
@@ -66,38 +67,54 @@ header{
   position:fixed;
   top:0;
   right:-100%;
-  width:80%;
+  width:85%;
   height:100%;
-  background:#111;
+  background:white;
   transition:0.3s;
-  padding:10px;
-  z-index:10;
+  padding:15px;
+  z-index:100;
 }
 
-/* SIDEBAR */
+/* MENU LATERAL */
 #menuLateral{
   position:fixed;
   top:0;
   left:-100%;
-  width:70%;
+  width:75%;
   height:100%;
-  background:#111;
+  background:white;
   transition:0.3s;
   padding:15px;
-  z-index:10;
+  z-index:100;
 }
 
 /* ADMIN */
 #admin{
+  position:fixed;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  background:#111;
+  color:white;
   display:none;
+  overflow:auto;
+  padding:15px;
 }
 
 /* PEDIDOS */
 .pedido{
-  background:#1f1f1f;
-  padding:10px;
+  background:#222;
+  padding:12px;
   border-radius:10px;
   margin:10px 0;
+}
+
+/* FECHAR */
+.fechar{
+  font-size:22px;
+  float:right;
+  cursor:pointer;
 }
 </style>
 </head>
@@ -106,36 +123,40 @@ header{
 
 <header>
   <span class="icon" onclick="abrirMenu()">☰</span>
-  <h3 id="nomeRestaurante">Seu Restaurante</h3>
+  <h3>Seu Restaurante</h3>
   <span class="icon" onclick="abrirCarrinho()">🛒</span>
 </header>
 
-<div class="container" id="menu"></div>
+<div id="menu"></div>
 
 <!-- CARRINHO -->
 <div id="carrinhoBox">
+  <span class="fechar" onclick="fecharCarrinho()">✖</span>
   <h3>Carrinho</h3>
+
   <ul id="listaCarrinho"></ul>
   <b>Total: R$ <span id="total">0</span></b>
 
-  <input id="mesa" placeholder="Mesa">
-  <button class="btn" onclick="finalizar()">Finalizar</button>
+  <input id="mesa" placeholder="Mesa" style="width:100%;padding:10px;margin-top:10px;">
+  <button class="btn" onclick="finalizar()">Finalizar Pedido</button>
 </div>
 
-<!-- MENU LATERAL -->
+<!-- MENU -->
 <div id="menuLateral">
+  <span class="fechar" onclick="fecharMenu()">✖</span>
   <h3>Opções</h3>
   <button class="btn" onclick="loginAdmin()">Admin</button>
 </div>
 
 <!-- ADMIN -->
 <div id="admin">
-  <h3>Painel Cozinha</h3>
+  <span class="fechar" onclick="fecharAdmin()">✖</span>
+  <h2>Painel Cozinha</h2>
 
   <div>
-    <input id="nomeItem" placeholder="Nome">
-    <input id="precoItem" placeholder="Preço">
-    <input id="imgItem" placeholder="Imagem (URL)">
+    <input id="nomeItem" placeholder="Nome"><br><br>
+    <input id="precoItem" placeholder="Preço"><br><br>
+    <input id="imgItem" placeholder="Imagem"><br><br>
     <button class="btn" onclick="addItem()">Adicionar</button>
   </div>
 
@@ -160,8 +181,7 @@ function carregarMenu(){
     menu.innerHTML="";
     snap.forEach(doc=>{
       let i=doc.data();
-
-      let img = i.img || "https://source.unsplash.com/400x300/?food";
+      let img=i.img || "https://source.unsplash.com/400x300/?food";
 
       menu.innerHTML+=`
         <div class="card">
@@ -171,23 +191,21 @@ function carregarMenu(){
             <p>R$ ${i.preco}</p>
             <button class="btn" onclick="addCarrinho('${i.nome}',${i.preco})">Adicionar</button>
           </div>
-        </div>
-      `;
+        </div>`;
     });
   });
 }
 
 /* CARRINHO */
-function abrirCarrinho(){
-  carrinhoBox.style.right="0";
-}
+function abrirCarrinho(){ carrinhoBox.style.right="0"; }
+function fecharCarrinho(){ carrinhoBox.style.right="-100%"; }
 
 function addCarrinho(nome,preco){
   carrinho.push({nome,preco});
-  atualizarCarrinho();
+  atualizar();
 }
 
-function atualizarCarrinho(){
+function atualizar(){
   listaCarrinho.innerHTML="";
   let total=0;
 
@@ -207,19 +225,17 @@ async function finalizar(){
   let snap=await db.collection("pedidos").get();
   let numero=String(snap.size+1).padStart(3,'0');
 
-  await db.collection("pedidos").add({
-    numero,mesa,carrinho,total
-  });
+  await db.collection("pedidos").add({numero,mesa,carrinho,total});
 
   alert("Pedido enviado!");
   carrinho=[];
-  atualizarCarrinho();
+  atualizar();
+  fecharCarrinho();
 }
 
 /* MENU LATERAL */
-function abrirMenu(){
-  menuLateral.style.left="0";
-}
+function abrirMenu(){ menuLateral.style.left="0"; }
+function fecharMenu(){ menuLateral.style.left="-100%"; }
 
 /* ADMIN */
 function loginAdmin(){
@@ -230,15 +246,19 @@ function loginAdmin(){
   }
 }
 
-/* PEDIDOS (COZINHA) */
+function fecharAdmin(){
+  admin.style.display="none";
+}
+
+/* PEDIDOS */
 function carregarPedidos(){
   db.collection("pedidos").onSnapshot(snap=>{
     pedidos.innerHTML="";
 
     snap.forEach(doc=>{
       let p=doc.data();
-
       let lista="";
+
       p.carrinho.forEach(i=>{
         lista+=`<li>${i.nome}</li>`;
       });
@@ -249,8 +269,7 @@ function carregarPedidos(){
           <ul>${lista}</ul>
           <b>R$ ${p.total}</b>
           <button class="btn" onclick="entregar('${doc.id}')">Entregue</button>
-        </div>
-      `;
+        </div>`;
     });
   });
 }
